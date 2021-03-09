@@ -126,19 +126,24 @@ namespace Microsoft.Azure.Management.ApiManagement.ArmTemplates.Extract
                 string[] dependsOn = new string[] {};
                 foreach (string apiName in multipleApiNames)
                 {
-                    templateResources.AddRange(await GenerateSingleAPITagResourceAsync(apiName, exc, dependsOn));
+                    var apiTagResources = await GenerateSingleAPITagResourceAsync(apiName, exc, dependsOn);
 
-                    // Extract the tag name from the last resource
-                    string[] lastTagName = templateResources.Last().name.Replace("')]", "").Split('/');
-                    if (lastTagName.Length > 3)
+                    if (apiTagResources.Count > 0)
                     {
-                        // Operations tag
-                        dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/operations/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}', '{lastTagName[3]}')]" };
-                    }
-                    else
-                    {
-                        // API tag
-                        dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}')]" };
+                        templateResources.AddRange(apiTagResources);
+
+                        // Extract the tag name from the last resource
+                        string[] lastTagName = templateResources.Last().name.Replace("')]", "").Split('/');
+                        if (lastTagName.Length > 3)
+                        {
+                            // Operations tag
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/operations/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}', '{lastTagName[3]}')]" };
+                        }
+                        else
+                        {
+                            // API tag
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}')]" };
+                        }
                     }
                 }
             }
@@ -152,19 +157,24 @@ namespace Microsoft.Azure.Management.ApiManagement.ArmTemplates.Extract
                 foreach (JToken oApi in oApis)
                 {
                     string apiName = ((JValue)oApi["name"]).Value.ToString();
-                    templateResources.AddRange(await GenerateSingleAPITagResourceAsync(apiName, exc, dependsOn));
+                    var apiTagResources = await GenerateSingleAPITagResourceAsync(apiName, exc, dependsOn);
 
-                    // Extract the tag name from the last resource
-                    string[] lastTagName = templateResources.Last().name.Replace("')]", "").Split('/');
-                    if (lastTagName.Length > 3)
+                    if (apiTagResources.Count > 0)
                     {
-                        // Operations tag
-                        dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/operations/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}', '{lastTagName[3]}')]" };
-                    }
-                    else
-                    {
-                        // API tag
-                        dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}')]" };
+                        templateResources.AddRange(apiTagResources);
+
+                        // Extract the tag name from the last resource
+                        string[] lastTagName = templateResources.Last().name.Replace("')]", "").Split('/');
+                        if (lastTagName.Length > 3)
+                        {
+                            // Operations tag
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/operations/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}', '{lastTagName[3]}')]" };
+                        }
+                        else
+                        {
+                            // API tag
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/apis/tags', parameters('{ParameterNames.ApimServiceName}'), '{apiName}', '{lastTagName[2]}')]" };
+                        }
                     }
                 }
             }
