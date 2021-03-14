@@ -54,7 +54,9 @@ namespace Microsoft.Azure.Management.ApiManagement.ArmTemplates.Extract
                     lastProductAPIName = $"[resourceId('Microsoft.ApiManagement/service/products/apis', parameters('{ParameterNames.ApimServiceName}'), '{apiProductName}', '{apiName}')]";
                 }
             }
-            catch (Exception) { }
+            catch (Exception e) {
+                throw new Exception(e.Message);
+            }
             #endregion
 
             return templateResources;
@@ -85,13 +87,25 @@ namespace Microsoft.Azure.Management.ApiManagement.ArmTemplates.Extract
             {
                 Console.WriteLine("{0} APIs found ...", multipleApiNames.Count().ToString());
 
-                string[] dependsOn = new string[] {};
-                foreach (string apiName in multipleApiNames)
+                try
                 {
-                    templateResources.AddRange(await GenerateSingleProductAPIResourceAsync(apiName, exc, dependsOn));
-                    string apiProductName = templateResources.Last().name.Split('/', 3)[1];
-                    dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/products/apis', parameters('{ParameterNames.ApimServiceName}'), '{apiProductName}', '{apiName}')]" };
+                    string[] dependsOn = new string[] { };
+                    foreach (string apiName in multipleApiNames)
+                    {
+                        var apiResources = await GenerateSingleProductAPIResourceAsync(apiName, exc, dependsOn);
+                        if (apiResources.Count > 0)
+                        {
+                            templateResources.AddRange(apiResources);
+                            string apiProductName = templateResources.Last().name.Split('/', 3)[1];
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/products/apis', parameters('{ParameterNames.ApimServiceName}'), '{apiProductName}', '{apiName}')]" };
+                        }
+                    }
                 }
+                catch(Exception e)
+                {
+                    throw e;
+                }
+
             }
             // when extract all APIs and generate one master template
             else
@@ -99,14 +113,26 @@ namespace Microsoft.Azure.Management.ApiManagement.ArmTemplates.Extract
                 JToken[] oApis = await GetAllAPIObjsAsync(exc.sourceApimName, exc.resourceGroup);
                 Console.WriteLine("{0} APIs found ...", (oApis.Count().ToString()));
 
-                string[] dependsOn = new string[] {};
-                foreach (JToken oApi in oApis)
+                try
                 {
-                    string apiName = ((JValue)oApi["name"]).Value.ToString();
-                    templateResources.AddRange(await GenerateSingleProductAPIResourceAsync(apiName, exc, dependsOn));
-                    string apiProductName = templateResources.Last().name.Split('/', 3)[1];
-                    dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/products/apis', parameters('{ParameterNames.ApimServiceName}'), '{apiProductName}', '{apiName}')]" };
+                    string[] dependsOn = new string[] { };
+                    foreach (JToken oApi in oApis)
+                    {
+                        string apiName = ((JValue)oApi["name"]).Value.ToString();
+                        var apiResources = await GenerateSingleProductAPIResourceAsync(apiName, exc, dependsOn);
+                        if (apiResources.Count > 0)
+                        {
+                            templateResources.AddRange(apiResources);
+                            string apiProductName = templateResources.Last().name.Split('/', 3)[1];
+                            dependsOn = new string[] { $"[resourceId('Microsoft.ApiManagement/service/products/apis', parameters('{ParameterNames.ApimServiceName}'), '{apiProductName}', '{apiName}')]" };
+                        }
+                    }
                 }
+                catch(Exception e)
+                {
+                    throw e;
+                }
+
             }
             armTemplate.resources = templateResources.ToArray();
             return armTemplate;
